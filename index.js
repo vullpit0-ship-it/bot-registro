@@ -1,4 +1,5 @@
 require("dotenv").config();
+const http = require("http");
 
 const {
   Client,
@@ -38,6 +39,8 @@ const CANAL_BEM_VINDO_ID = process.env.CANAL_BEM_VINDO_ID;
 const CARGO_MEMBRO_ID = process.env.CARGO_MEMBRO_ID;
 const CARGO_REGISTRO_ID = process.env.CARGO_REGISTRO_ID;
 
+const PORT = process.env.PORT || 10000;
+
 if (
   !TOKEN ||
   !CLIENT_ID ||
@@ -53,6 +56,23 @@ if (
   console.error("❌ Faltam variáveis no arquivo .env");
   process.exit(1);
 }
+
+// =======================
+// WEB SERVER PARA RENDER
+// =======================
+http
+  .createServer((req, res) => {
+    if (req.url === "/health") {
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      return res.end("ok");
+    }
+
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Bot da Nova Ordem online.");
+  })
+  .listen(PORT, "0.0.0.0", () => {
+    console.log(`🌐 Web server online na porta ${PORT}`);
+  });
 
 // =======================
 // CLIENTS
@@ -120,8 +140,8 @@ function criarPainelRegistro() {
       ].join("\n")
     )
     .setColor(0xff0000)
-    .setThumbnail("https://cdn.discordapp.com/attachments/760881301217345588/1474207784965902336/19_de_fev._de_2026_11_51_12.png?ex=69b2b7bd&is=69b1663d&hm=22b8c572343b291f3c7e7011b8dc805c499a57579017815cfea4bcad8d51b5ee&")
-    .setImage("https://cdn.discordapp.com/attachments/760881301217345588/1474207784965902336/19_de_fev._de_2026_11_51_12.png?ex=69b2b7bd&is=69b1663d&hm=22b8c572343b291f3c7e7011b8dc805c499a57579017815cfea4bcad8d51b5ee&")
+    .setThumbnail("https://cdn.discordapp.com/attachments/760881301217345588/1474207784965902336/19_de_fev._de_2026_11_51_12.png")
+    .setImage("https://cdn.discordapp.com/attachments/760881301217345588/1474207784965902336/19_de_fev._de_2026_11_51_12.png")
     .setFooter({ text: "Nova Ordem • Sistema de Registro" })
     .setTimestamp();
 }
@@ -489,9 +509,6 @@ client.on(Events.GuildMemberAdd, async (member) => {
 // =======================
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
-    // -----------------------
-    // COMANDOS
-    // -----------------------
     if (interaction.isChatInputCommand()) {
       if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
         return interaction.reply({
@@ -579,9 +596,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // -----------------------
-    // BOTÃO ABRIR REGISTRO
-    // -----------------------
     if (interaction.isButton() && interaction.customId === "abrir_registro") {
       const registroPendente = await buscarRegistroPendenteDoUsuario(
         interaction.guild.id,
@@ -598,9 +612,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return interaction.showModal(criarModalRegistro());
     }
 
-    // -----------------------
-    // BOTÕES DE ANÁLISE
-    // -----------------------
     if (interaction.isButton()) {
       if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
         return interaction.reply({
@@ -697,9 +708,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // -----------------------
-    // MODAL REGISTRO
-    // -----------------------
     if (interaction.isModalSubmit() && interaction.customId === "modal_registro") {
       const registroPendente = await buscarRegistroPendenteDoUsuario(
         interaction.guild.id,
@@ -775,9 +783,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       });
     }
 
-    // -----------------------
-    // MODAL NEGAR
-    // -----------------------
     if (interaction.isModalSubmit() && interaction.customId.startsWith("modal_negar_")) {
       if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
         return interaction.reply({
