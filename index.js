@@ -961,7 +961,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }, 5000);
 
     const timeout = setTimeout(() => {
-      console.error("❌ Login tentando no Discord travou por 30s. Encerrando processo...");
+      console.error("❌ Login no Discord travou por 30s. Encerrando processo...");
       clearInterval(interval);
       process.exit(1);
     }, 30000);
