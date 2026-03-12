@@ -25,19 +25,19 @@ const { createClient } = require("@supabase/supabase-js");
 // =======================
 // ENV
 // =======================
-const TOKEN = process.env.TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID;
+const TOKEN = (process.env.TOKEN || "").trim();
+const CLIENT_ID = (process.env.CLIENT_ID || "").trim();
+const GUILD_ID = (process.env.GUILD_ID || "").trim();
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_URL = (process.env.SUPABASE_URL || "").trim();
+const SUPABASE_KEY = (process.env.SUPABASE_KEY || "").trim();
 
-const CANAL_ANALISE_ID = process.env.CANAL_ANALISE_ID;
-const CANAL_RESULTADO_ID = process.env.CANAL_RESULTADO_ID;
-const CANAL_BEM_VINDO_ID = process.env.CANAL_BEM_VINDO_ID;
+const CANAL_ANALISE_ID = (process.env.CANAL_ANALISE_ID || "").trim();
+const CANAL_RESULTADO_ID = (process.env.CANAL_RESULTADO_ID || "").trim();
+const CANAL_BEM_VINDO_ID = (process.env.CANAL_BEM_VINDO_ID || "").trim();
 
-const CARGO_MEMBRO_ID = process.env.CARGO_MEMBRO_ID;
-const CARGO_REGISTRO_ID = process.env.CARGO_REGISTRO_ID;
+const CARGO_MEMBRO_ID = (process.env.CARGO_MEMBRO_ID || "").trim();
+const CARGO_REGISTRO_ID = (process.env.CARGO_REGISTRO_ID || "").trim();
 
 const PORT = process.env.PORT || 10000;
 
@@ -101,6 +101,48 @@ const client = new Client({
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // =======================
+// DIAGNÓSTICO DISCORD
+// =======================
+client.on("debug", (msg) => {
+  if (
+    msg.includes("Hit a 429") ||
+    msg.includes("Provided token") ||
+    msg.includes("Heartbeat") ||
+    msg.includes("Session")
+  ) {
+    console.log("🐞 DEBUG:", msg);
+  }
+});
+
+client.on("error", (error) => {
+  console.error("❌ Erro no client do Discord:", error);
+});
+
+client.on("warn", (info) => {
+  console.warn("⚠️ Aviso do Discord:", info);
+});
+
+client.on("shardReady", (id) => {
+  console.log(`🟢 Shard ${id} pronta.`);
+});
+
+client.on("shardDisconnect", (event, id) => {
+  console.log(`🔌 Shard ${id} desconectada. Código: ${event.code}`);
+});
+
+client.on("shardError", (error, id) => {
+  console.error(`❌ Erro na shard ${id}:`, error);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ Unhandled Rejection:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught Exception:", error);
+});
+
+// =======================
 // COMANDOS
 // =======================
 function obterComandos() {
@@ -131,20 +173,16 @@ function obterComandos() {
 async function registrarComandos() {
   try {
     console.log("📝 Registrando comandos no Discord...");
-
     const rest = new REST({ version: "10" }).setToken(TOKEN);
     const commands = obterComandos();
-
-    const timeoutMs = 20000;
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Timeout ao registrar comandos no Discord.")), timeoutMs)
-    );
 
     await Promise.race([
       rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
         body: commands,
       }),
-      timeoutPromise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout ao registrar comandos.")), 15000)
+      ),
     ]);
 
     console.log("✅ Comandos registrados com sucesso.");
@@ -206,36 +244,12 @@ function criarEmbedRegistro({
     .setTitle(titulo)
     .setColor(cor)
     .addFields(
-      {
-        name: "Usuário Discord",
-        value: `${userTag} (${userId})`,
-        inline: false,
-      },
-      {
-        name: "Seu ID no RP",
-        value: idRp || "Não informado",
-        inline: true,
-      },
-      {
-        name: "Nome RP",
-        value: nomeRp || "Não informado",
-        inline: true,
-      },
-      {
-        name: "Celular RP",
-        value: celularRp || "Não informado",
-        inline: true,
-      },
-      {
-        name: "Cargo",
-        value: cargoRp || "Não informado",
-        inline: true,
-      },
-      {
-        name: "Status",
-        value: status,
-        inline: true,
-      }
+      { name: "Usuário Discord", value: `${userTag} (${userId})`, inline: false },
+      { name: "Seu ID no RP", value: idRp || "Não informado", inline: true },
+      { name: "Nome RP", value: nomeRp || "Não informado", inline: true },
+      { name: "Celular RP", value: celularRp || "Não informado", inline: true },
+      { name: "Cargo", value: cargoRp || "Não informado", inline: true },
+      { name: "Status", value: status, inline: true }
     )
     .setTimestamp();
 
@@ -273,21 +287,9 @@ function criarEmbedBoasVindas({ membro, idRp, celularRp, cargoRp }) {
       ].join("\n")
     )
     .addFields(
-      {
-        name: "🪪 ID DO RP",
-        value: `\`${idRp || "Não informado"}\``,
-        inline: true,
-      },
-      {
-        name: "📱 CELULAR",
-        value: `\`${celularRp || "Não informado"}\``,
-        inline: true,
-      },
-      {
-        name: "🎖️ CARGO",
-        value: `\`${cargoRp || "Não informado"}\``,
-        inline: true,
-      }
+      { name: "🪪 ID DO RP", value: `\`${idRp || "Não informado"}\``, inline: true },
+      { name: "📱 CELULAR", value: `\`${celularRp || "Não informado"}\``, inline: true },
+      { name: "🎖️ CARGO", value: `\`${cargoRp || "Não informado"}\``, inline: true }
     )
     .setColor(0x8e44ad)
     .setThumbnail("https://cdn.discordapp.com/embed/avatars/0.png")
@@ -364,7 +366,6 @@ function criarModalNegacao(registroId) {
     .setPlaceholder("Ex: Dados incorretos ou incompletos");
 
   modal.addComponents(new ActionRowBuilder().addComponents(motivo));
-
   return modal;
 }
 
@@ -526,22 +527,6 @@ client.once(Events.ClientReady, async () => {
   }
 
   await registrarComandos();
-});
-
-client.on("error", (error) => {
-  console.error("❌ Erro no client do Discord:", error);
-});
-
-client.on("warn", (info) => {
-  console.warn("⚠️ Aviso do Discord:", info);
-});
-
-process.on("unhandledRejection", (reason) => {
-  console.error("❌ Unhandled Rejection:", reason);
-});
-
-process.on("uncaughtException", (error) => {
-  console.error("❌ Uncaught Exception:", error);
 });
 
 // =======================
@@ -945,8 +930,32 @@ client.on(Events.InteractionCreate, async (interaction) => {
       console.log("✅ Supabase conectado com sucesso.");
     }
 
-    console.log("🔐 Tentando login no Discord...");
-    await client.login(TOKEN);
+    console.log("🌍 Testando REST do Discord...");
+    const meResponse = await fetch("https://discord.com/api/v10/users/@me", {
+      headers: {
+        Authorization: `Bot ${TOKEN}`,
+      },
+    });
+
+    console.log(`📡 Discord REST status: ${meResponse.status}`);
+
+    if (!meResponse.ok) {
+      const body = await meResponse.text();
+      console.error("❌ Discord REST falhou:", body);
+      return;
+    }
+
+    const meData = await meResponse.json();
+    console.log(`✅ Discord REST autenticou como: ${meData.username}#${meData.discriminator} (${meData.id})`);
+
+    console.log("🔐 Tentando login no Discord Gateway...");
+    await Promise.race([
+      client.login(TOKEN),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout no client.login após 20 segundos.")), 20000)
+      ),
+    ]);
+
     console.log("✅ Login no Discord enviado.");
   } catch (err) {
     console.error("❌ Erro ao iniciar o bot:", err);
