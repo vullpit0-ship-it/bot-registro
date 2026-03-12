@@ -93,8 +93,9 @@ http
 // =======================
 // CLIENTS
 // =======================
+// TESTE: removido GuildMembers temporariamente
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+  intents: [GatewayIntentBits.Guilds],
   partials: [Partials.Channel],
 });
 
@@ -107,7 +108,9 @@ client.on("debug", (msg) => {
   if (
     msg.includes("Hit a 429") ||
     msg.includes("Heartbeat") ||
-    msg.includes("Session")
+    msg.includes("Session") ||
+    msg.includes("Connecting") ||
+    msg.includes("Ready")
   ) {
     console.log("🐞 DEBUG:", msg);
   }
@@ -121,8 +124,24 @@ client.on("warn", (info) => {
   console.warn("⚠️ Aviso do Discord:", info);
 });
 
+client.on("ready", () => {
+  console.log("🟢 Evento ready disparou.");
+});
+
 client.on("shardReady", (id) => {
   console.log(`🟢 Shard ${id} pronta.`);
+});
+
+client.on("shardConnecting", (id) => {
+  console.log(`🟡 Shard ${id} conectando...`);
+});
+
+client.on("shardReconnecting", (id) => {
+  console.log(`🟠 Shard ${id} reconectando...`);
+});
+
+client.on("shardResume", (id, replayedEvents) => {
+  console.log(`🔵 Shard ${id} retomou. Eventos replayed: ${replayedEvents}`);
 });
 
 client.on("shardDisconnect", (event, id) => {
@@ -531,6 +550,7 @@ client.once(Events.ClientReady, async () => {
 // =======================
 // AO ENTRAR
 // =======================
+// OBS: com GuildMembers removido para teste, esse evento pode não funcionar como esperado
 client.on(Events.GuildMemberAdd, async (member) => {
   try {
     if (!member.guild || member.guild.id !== GUILD_ID) return;
@@ -929,21 +949,34 @@ client.on(Events.InteractionCreate, async (interaction) => {
       console.log("✅ Supabase conectado com sucesso.");
     }
 
-    const loginTimeout = setTimeout(() => {
-      console.error("❌ Login no Discord travou por 30s. Reiniciando processo...");
+    console.log("🔐 Tentando login no Discord Gateway...");
+    console.log("🧪 Intents ativas:", client.options.intents);
+
+    const loginPromise = client.login(TOKEN);
+
+    let tick = 0;
+    const interval = setInterval(() => {
+      tick++;
+      console.log(`⏳ Aguardando login do Discord... ${tick * 5}s`);
+    }, 5000);
+
+    const timeout = setTimeout(() => {
+      console.error("❌ Login no Discord travou por 30s. Encerrando processo...");
+      clearInterval(interval);
       process.exit(1);
     }, 30000);
 
-    console.log("🔐 Tentando login no Discord Gateway...");
-
-    client
-      .login(TOKEN)
-      .then(() => {
-        clearTimeout(loginTimeout);
+    loginPromise
+      .then((result) => {
+        clearTimeout(timeout);
+        clearInterval(interval);
+        console.log("✅ client.login resolveu com sucesso.");
         console.log("✅ Login no Discord enviado.");
+        return result;
       })
       .catch((err) => {
-        clearTimeout(loginTimeout);
+        clearTimeout(timeout);
+        clearInterval(interval);
         console.error("❌ Erro no login do Discord:", err);
         process.exit(1);
       });
