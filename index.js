@@ -217,7 +217,7 @@ function criarPainelRegistro() {
     .setTitle("🔱 FACÇÃO NOVA ORDEM 🔱")
     .setDescription(
       [
-        "📋 **Sistema de Registro da NOVA ORDEM**",
+        "📋 **Sistema de Registro da NOVA ORDEM2.0**",
         "",
         "Para fazer parte da familia, você precisa realizar seu Registro.",
         "",
