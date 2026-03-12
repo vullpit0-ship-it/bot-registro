@@ -930,32 +930,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       console.log("✅ Supabase conectado com sucesso.");
     }
 
-    console.log("🌍 Testando REST do Discord...");
-    const meResponse = await fetch("https://discord.com/api/v10/users/@me", {
-      headers: {
-        Authorization: `Bot ${TOKEN}`,
-      },
-    });
-
-    console.log(`📡 Discord REST status: ${meResponse.status}`);
-
-    if (!meResponse.ok) {
-      const body = await meResponse.text();
-      console.error("❌ Discord REST falhou:", body);
-      return;
-    }
-
-    const meData = await meResponse.json();
-    console.log(`✅ Discord REST autenticou como: ${meData.username}#${meData.discriminator} (${meData.id})`);
-
     console.log("🔐 Tentando login no Discord Gateway...");
-    await Promise.race([
-      client.login(TOKEN),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout no client.login após 20 segundos.")), 20000)
-      ),
-    ]);
-
+    await client.login(TOKEN);
     console.log("✅ Login no Discord enviado.");
   } catch (err) {
     console.error("❌ Erro ao iniciar o bot:", err);
