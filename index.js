@@ -101,52 +101,10 @@ const client = new Client({
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // =======================
-// EVENTOS DE DIAGNÓSTICO DO DISCORD
-// =======================
-client.on("ready", () => {
-  console.log(`✅ Bot online como ${client.user.tag}`);
-  console.log(`🆔 Bot user id: ${client.user.id}`);
-});
-
-client.on("shardReady", (id) => {
-  console.log(`🟢 Shard ${id} pronta.`);
-});
-
-client.on("shardDisconnect", (event, id) => {
-  console.log(`🔌 Shard ${id} desconectada. Código: ${event.code}`);
-});
-
-client.on("shardError", (error, id) => {
-  console.error(`❌ Erro na shard ${id}:`, error);
-});
-
-client.on("error", (error) => {
-  console.error("❌ Erro no client do Discord:", error);
-});
-
-client.on("warn", (info) => {
-  console.warn("⚠️ Aviso do Discord:", info);
-});
-
-process.on("unhandledRejection", (reason) => {
-  console.error("❌ Unhandled Rejection:", reason);
-});
-
-process.on("uncaughtException", (error) => {
-  console.error("❌ Uncaught Exception:", error);
-});
-
-process.on("exit", (code) => {
-  console.log(`🛑 Processo finalizado com código ${code}`);
-});
-
-// =======================
 // COMANDOS
 // =======================
-async function registrarComandos() {
-  console.log("📝 Registrando comandos...");
-
-  const commands = [
+function obterComandos() {
+  return [
     new SlashCommandBuilder()
       .setName("registro-painel")
       .setDescription("Posta o painel de registro")
@@ -168,14 +126,31 @@ async function registrarComandos() {
       )
       .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   ].map((cmd) => cmd.toJSON());
+}
 
-  const rest = new REST({ version: "10" }).setToken(TOKEN);
+async function registrarComandos() {
+  try {
+    console.log("📝 Registrando comandos no Discord...");
 
-  await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
-    body: commands,
-  });
+    const rest = new REST({ version: "10" }).setToken(TOKEN);
+    const commands = obterComandos();
 
-  console.log("✅ Comandos registrados com sucesso.");
+    const timeoutMs = 20000;
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout ao registrar comandos no Discord.")), timeoutMs)
+    );
+
+    await Promise.race([
+      rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
+        body: commands,
+      }),
+      timeoutPromise,
+    ]);
+
+    console.log("✅ Comandos registrados com sucesso.");
+  } catch (error) {
+    console.error("❌ Falha ao registrar comandos:", error);
+  }
 }
 
 // =======================
@@ -540,6 +515,33 @@ async function enviarMensagemBoasVindas({ membro, idRp, celularRp, cargoRp }) {
 // =======================
 client.once(Events.ClientReady, async () => {
   console.log(`✅ Bot online como ${client.user.tag}`);
+  console.log(`🆔 ID do bot: ${client.user.id}`);
+  console.log(`🏠 Guild alvo configurada: ${GUILD_ID}`);
+
+  const guild = client.guilds.cache.get(GUILD_ID);
+  if (guild) {
+    console.log(`✅ Bot detectou a guild: ${guild.name} (${guild.id})`);
+  } else {
+    console.log("⚠️ Bot online, mas não encontrou a guild configurada no cache.");
+  }
+
+  await registrarComandos();
+});
+
+client.on("error", (error) => {
+  console.error("❌ Erro no client do Discord:", error);
+});
+
+client.on("warn", (info) => {
+  console.warn("⚠️ Aviso do Discord:", info);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ Unhandled Rejection:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught Exception:", error);
 });
 
 // =======================
@@ -943,11 +945,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       console.log("✅ Supabase conectado com sucesso.");
     }
 
-    await registrarComandos();
-
     console.log("🔐 Tentando login no Discord...");
-    const loginResult = await client.login(TOKEN);
-    console.log(`✅ Login no Discord enviado com sucesso. Token retornado: ${loginResult ? "SIM" : "NÃO"}`);
+    await client.login(TOKEN);
+    console.log("✅ Login no Discord enviado.");
   } catch (err) {
     console.error("❌ Erro ao iniciar o bot:", err);
   }
