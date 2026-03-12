@@ -41,6 +41,22 @@ const CARGO_REGISTRO_ID = process.env.CARGO_REGISTRO_ID;
 
 const PORT = process.env.PORT || 10000;
 
+// =======================
+// LOGS INICIAIS
+// =======================
+console.log("🚀 Iniciando bot...");
+console.log("🧪 Variáveis carregadas:");
+console.log(`- TOKEN: ${TOKEN ? "OK" : "FALTANDO"}`);
+console.log(`- CLIENT_ID: ${CLIENT_ID ? "OK" : "FALTANDO"} (${CLIENT_ID || "vazio"})`);
+console.log(`- GUILD_ID: ${GUILD_ID ? "OK" : "FALTANDO"} (${GUILD_ID || "vazio"})`);
+console.log(`- SUPABASE_URL: ${SUPABASE_URL ? "OK" : "FALTANDO"}`);
+console.log(`- SUPABASE_KEY: ${SUPABASE_KEY ? "OK" : "FALTANDO"}`);
+console.log(`- CANAL_ANALISE_ID: ${CANAL_ANALISE_ID ? "OK" : "FALTANDO"}`);
+console.log(`- CANAL_RESULTADO_ID: ${CANAL_RESULTADO_ID ? "OK" : "FALTANDO"}`);
+console.log(`- CANAL_BEM_VINDO_ID: ${CANAL_BEM_VINDO_ID ? "OK" : "FALTANDO"}`);
+console.log(`- CARGO_MEMBRO_ID: ${CARGO_MEMBRO_ID ? "OK" : "FALTANDO"}`);
+console.log(`- CARGO_REGISTRO_ID: ${CARGO_REGISTRO_ID ? "OK" : "FALTANDO"}`);
+
 if (
   !TOKEN ||
   !CLIENT_ID ||
@@ -53,7 +69,7 @@ if (
   !CARGO_MEMBRO_ID ||
   !CARGO_REGISTRO_ID
 ) {
-  console.error("❌ Faltam variáveis no arquivo .env");
+  console.error("❌ Faltam variáveis obrigatórias.");
   process.exit(1);
 }
 
@@ -85,9 +101,51 @@ const client = new Client({
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // =======================
+// EVENTOS DE DIAGNÓSTICO DO DISCORD
+// =======================
+client.on("ready", () => {
+  console.log(`✅ Bot online como ${client.user.tag}`);
+  console.log(`🆔 Bot user id: ${client.user.id}`);
+});
+
+client.on("shardReady", (id) => {
+  console.log(`🟢 Shard ${id} pronta.`);
+});
+
+client.on("shardDisconnect", (event, id) => {
+  console.log(`🔌 Shard ${id} desconectada. Código: ${event.code}`);
+});
+
+client.on("shardError", (error, id) => {
+  console.error(`❌ Erro na shard ${id}:`, error);
+});
+
+client.on("error", (error) => {
+  console.error("❌ Erro no client do Discord:", error);
+});
+
+client.on("warn", (info) => {
+  console.warn("⚠️ Aviso do Discord:", info);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ Unhandled Rejection:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught Exception:", error);
+});
+
+process.on("exit", (code) => {
+  console.log(`🛑 Processo finalizado com código ${code}`);
+});
+
+// =======================
 // COMANDOS
 // =======================
 async function registrarComandos() {
+  console.log("📝 Registrando comandos...");
+
   const commands = [
     new SlashCommandBuilder()
       .setName("registro-painel")
@@ -130,7 +188,7 @@ function criarPainelRegistro() {
       [
         "📋 **Sistema de Registro da NOVA ORDEM**",
         "",
-        "Para fazer parte da familia, você precisa realizar seu Cadastro.",
+        "Para fazer parte da familia, você precisa realizar seu Registro.",
         "",
         "Clique no botão **Fazer Registro** abaixo.",
         "",
@@ -873,9 +931,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
 // =======================
 (async () => {
   try {
+    console.log("🔗 Testando conexão com Supabase...");
+    const { error: testError } = await supabase
+      .from("registros_discord")
+      .select("id")
+      .limit(1);
+
+    if (testError) {
+      console.error("❌ Supabase respondeu com erro:", testError);
+    } else {
+      console.log("✅ Supabase conectado com sucesso.");
+    }
+
     await registrarComandos();
-    await client.login(TOKEN);
+
+    console.log("🔐 Tentando login no Discord...");
+    const loginResult = await client.login(TOKEN);
+    console.log(`✅ Login no Discord enviado com sucesso. Token retornado: ${loginResult ? "SIM" : "NÃO"}`);
   } catch (err) {
-    console.error("❌ Erro ao iniciar:", err);
+    console.error("❌ Erro ao iniciar o bot:", err);
   }
 })();
