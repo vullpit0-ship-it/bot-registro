@@ -106,7 +106,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 client.on("debug", (msg) => {
   if (
     msg.includes("Hit a 429") ||
-    msg.includes("Provided token") ||
     msg.includes("Heartbeat") ||
     msg.includes("Session")
   ) {
@@ -930,10 +929,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
       console.log("✅ Supabase conectado com sucesso.");
     }
 
+    const loginTimeout = setTimeout(() => {
+      console.error("❌ Login no Discord travou por 30s. Reiniciando processo...");
+      process.exit(1);
+    }, 30000);
+
     console.log("🔐 Tentando login no Discord Gateway...");
-    await client.login(TOKEN);
-    console.log("✅ Login no Discord enviado.");
+
+    client
+      .login(TOKEN)
+      .then(() => {
+        clearTimeout(loginTimeout);
+        console.log("✅ Login no Discord enviado.");
+      })
+      .catch((err) => {
+        clearTimeout(loginTimeout);
+        console.error("❌ Erro no login do Discord:", err);
+        process.exit(1);
+      });
   } catch (err) {
     console.error("❌ Erro ao iniciar o bot:", err);
+    process.exit(1);
   }
 })();
