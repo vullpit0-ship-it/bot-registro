@@ -130,7 +130,7 @@ function criarPainelRegistro() {
       [
         "📋 **Sistema de Registro da NOVA ORDEM**",
         "",
-        "Para fazer parte da familia, você precisa realizar seu registro.",
+        "Para fazer parte da familia, você precisa realizar seu Cadastro.",
         "",
         "Clique no botão **Fazer Registro** abaixo.",
         "",
